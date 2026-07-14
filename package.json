@@ -1,0 +1,16 @@
+{
+  "name": "leobchat",
+  "version": "1.0.0",
+  "description": "Chatbot leobChat para alunos",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "node scripts/setup-vector-store.js",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "openai": "^4.73.0",
+    "pdfkit": "^0.19.1"
+  }
+}

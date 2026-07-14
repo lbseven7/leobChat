@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>leobChat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { orange: '#d88800' }
+          },
+          fontFamily: {
+            sans: ['Comfortaa', 'sans-serif'],
+            serif: ['Playfair Display', 'serif']
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;700&family=Playfair+Display:wght@400;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body
+  class="bg-white dark:bg-black text-zinc-800 dark:text-zinc-100 font-sans min-h-screen flex items-center justify-center p-4 transition-colors duration-500">
+
+  <div id="chat-container"
+    class="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-3xl shadow-[0_30px_80px_rgba(0,0,0,0.12)] border border-zinc-100 dark:border-zinc-800/50 flex flex-col h-[85vh] transition-colors duration-500">
+
+    <!-- Header -->
+    <div class="border-b border-zinc-100 dark:border-zinc-800/50 px-6 py-4 flex items-center gap-3 rounded-t-3xl">
+      <img src="image/leobChat.png" alt="leobChat" class="w-10 h-10 rounded-full object-cover">
+      <div>
+        <h1 class="font-semibold text-zinc-800 dark:text-zinc-100">leobChat</h1>
+        <p class="text-xs text-zinc-400">Seu parceiro de estudos</p>
+      </div>
+      <div id="status-dot" class="ml-auto w-3 h-3 rounded-full bg-green-500"></div>
+    </div>
+
+    <!-- Messages -->
+    <div id="messages" class="flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth">
+      <div class="flex justify-start">
+        <div
+          class="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-2xl rounded-tl-sm px-5 py-3 max-w-[80%] text-sm leading-relaxed">
+          Fala artista! Aqui é o leob. Qual é sua dúvida?
+        </div>
+      </div>
+    </div>
+
+    <!-- Sugestões -->
+    <div id="suggestions" class="px-6 pb-3 flex gap-2 overflow-x-auto scroll-smooth shrink-0">
+      <button onclick="sendSuggestion(this)"
+        class="suggestion-btn shrink-0 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-700 hover:border-brand-orange hover:text-brand-orange transition duration-300">
+        Quais obras estão disponíveis?
+      </button>
+      <button onclick="sendSuggestion(this)"
+        class="suggestion-btn shrink-0 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-700 hover:border-brand-orange hover:text-brand-orange transition duration-300">
+        Como são feitas as impressões Fine Art?
+      </button>
+      <button onclick="sendSuggestion(this)"
+        class="suggestion-btn shrink-0 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-700 hover:border-brand-orange hover:text-brand-orange transition duration-300">
+        Qual a técnica de impressão usada?
+      </button>
+      <button onclick="sendSuggestion(this)"
+        class="suggestion-btn shrink-0 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-700 hover:border-brand-orange hover:text-brand-orange transition duration-300">
+        Tem curso disponível?
+      </button>
+      <button onclick="sendSuggestion(this)"
+        class="suggestion-btn shrink-0 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-700 hover:border-brand-orange hover:text-brand-orange transition duration-300">
+        O que eu aprendo no curso?
+      </button>
+      <button onclick="sendSuggestion(this)"
+        class="suggestion-btn shrink-0 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-700 hover:border-brand-orange hover:text-brand-orange transition duration-300">
+        Como devo cuidar da obra?
+      </button>
+      <button onclick="sendSuggestion(this)"
+        class="suggestion-btn shrink-0 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-700 hover:border-brand-orange hover:text-brand-orange transition duration-300">
+        Quem é o Professor Leo?
+      </button>
+      <button onclick="sendSuggestion(this)"
+        class="suggestion-btn shrink-0 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-700 hover:border-brand-orange hover:text-brand-orange transition duration-300">
+        Qual o valor das obras?
+      </button>
+      <button onclick="sendSuggestion(this)"
+        class="suggestion-btn shrink-0 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-700 hover:border-brand-orange hover:text-brand-orange transition duration-300">
+        Como funciona o método em 3 fases?
+      </button>
+      <button onclick="sendSuggestion(this)"
+        class="suggestion-btn shrink-0 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-xs px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-700 hover:border-brand-orange hover:text-brand-orange transition duration-300">
+        Qual a narrativa por trás da coleção?
+      </button>
+    </div>
+
+    <!-- Input -->
+    <div class="border-t border-zinc-100 dark:border-zinc-800/50 p-4">
+      <form id="chat-form" class="flex items-center gap-3">
+        <input id="message-input" type="text" placeholder="Digite sua pergunta..."
+          class="flex-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-white placeholder-zinc-400 rounded-xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange/50 border border-zinc-200 dark:border-zinc-700 transition"
+          autocomplete="off">
+        <button type="submit" id="send-btn"
+          class="bg-brand-orange hover:opacity-80 text-white rounded-xl px-5 py-3 text-sm font-medium transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+          Enviar
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/chat.js"></script>
+</body>
+
+</html>

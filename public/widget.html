@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>leobChat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { orange: '#d88800' }
+          },
+          fontFamily: {
+            sans: ['Comfortaa', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Comfortaa', sans-serif; height: 100vh; overflow: hidden; }
+    #messages { scroll-behavior: smooth; }
+    .typing-dot {
+      width: 6px; height: 6px; background: #a1a1aa; border-radius: 50%;
+      animation: blink 1.4s infinite both;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+      40% { opacity: 1; transform: scale(1); }
+    }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 4px; }
+    .suggestion-btn {
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body class="bg-zinc-900 text-zinc-100 flex flex-col h-screen">
+
+  <div class="flex flex-col h-full max-w-lg mx-auto bg-zinc-900 border-x border-zinc-800/50">
+
+    <!-- Header -->
+    <div class="border-b border-zinc-800/50 px-5 py-3 flex items-center gap-3 shrink-0">
+      <img src="image/leobChat.png" alt="leobChat" class="w-8 h-8 rounded-full object-cover">
+      <div>
+        <h1 class="font-semibold text-sm text-zinc-100">leobChat</h1>
+        <p class="text-[10px] text-zinc-400">Seu parceiro de estudos</p>
+      </div>
+      <div id="status-dot" class="ml-auto w-2.5 h-2.5 rounded-full bg-green-500"></div>
+    </div>
+
+    <!-- Messages -->
+    <div id="messages" class="flex-1 overflow-y-auto p-4 space-y-3">
+      <div class="flex justify-start">
+        <div class="bg-zinc-800 text-zinc-200 rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-[85%] text-xs leading-relaxed">
+          Fala artista! Aqui é o leob. Qual é sua dúvida?
+        </div>
+      </div>
+    </div>
+
+    <!-- Sugestões -->
+    <div id="suggestions" class="px-4 pb-2 flex gap-1.5 overflow-x-auto scroll-smooth shrink-0">
+      <button onclick="sendSuggestion(this)" class="suggestion-btn shrink-0 bg-zinc-800 text-zinc-300 text-[10px] px-3 py-1.5 rounded-full border border-zinc-700 hover:border-brand-orange hover:text-brand-orange transition duration-300">
+        Quais obras disponíveis?
+      </button>
+      <button onclick="sendSuggestion(this)" class="suggestion-btn shrink-0 bg-zinc-800 text-zinc-300 text-[10px] px-3 py-1.5 rounded-full border border-zinc-700 hover:border-brand-orange hover:text-brand-orange transition duration-300">
+        Como são as impressões Fine Art?
+      </button>
+      <button onclick="sendSuggestion(this)" class="suggestion-btn shrink-0 bg-zinc-800 text-zinc-300 text-[10px] px-3 py-1.5 rounded-full border border-zinc-700 hover:border-brand-orange hover:text-brand-orange transition duration-300">
+        Tem curso disponível?
+      </button>
+      <button onclick="sendSuggestion(this)" class="suggestion-btn shrink-0 bg-zinc-800 text-zinc-300 text-[10px] px-3 py-1.5 rounded-full border border-zinc-700 hover:border-brand-orange hover:text-brand-orange transition duration-300">
+        Quem é o Professor Leo?
+      </button>
+    </div>
+
+    <!-- Input -->
+    <div class="border-t border-zinc-800/50 p-3 shrink-0">
+      <form id="chat-form" class="flex items-center gap-2">
+        <input id="message-input" type="text" placeholder="Digite sua pergunta..."
+          class="flex-1 bg-zinc-800 text-zinc-100 placeholder-zinc-500 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-orange/50 border border-zinc-700 transition"
+          autocomplete="off">
+        <button type="submit" id="send-btn"
+          class="bg-brand-orange hover:opacity-80 text-white rounded-xl px-4 py-2.5 text-xs font-medium transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+          Enviar
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const messagesEl = document.getElementById("messages");
+    const form = document.getElementById("chat-form");
+    const input = document.getElementById("message-input");
+    const sendBtn = document.getElementById("send-btn");
+    const statusDot = document.getElementById("status-dot");
+
+    let threadId = null;
+    let isLoading = false;
+
+    function addMessage(text, role) {
+      const wrapper = document.createElement("div");
+      wrapper.className = `flex ${role === "user" ? "justify-end" : "justify-start"}`;
+
+      const bubble = document.createElement("div");
+      bubble.className =
+        role === "user"
+          ? "bg-brand-orange text-white rounded-2xl rounded-tr-sm px-4 py-2.5 max-w-[85%] text-xs leading-relaxed"
+          : "bg-zinc-800 text-zinc-200 rounded-2xl rounded-tl-sm px-4 py-2.5 max-w-[85%] text-xs leading-relaxed";
+
+      bubble.textContent = text;
+      wrapper.appendChild(bubble);
+      messagesEl.appendChild(wrapper);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function showTyping() {
+      const wrapper = document.createElement("div");
+      wrapper.className = "flex justify-start";
+      wrapper.id = "typing-indicator";
+
+      const bubble = document.createElement("div");
+      bubble.className =
+        "bg-zinc-800 text-zinc-200 rounded-2xl rounded-tl-sm px-4 py-2.5 text-xs flex gap-1.5 items-center";
+      bubble.innerHTML =
+        '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+
+      wrapper.appendChild(bubble);
+      messagesEl.appendChild(wrapper);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function removeTyping() {
+      const el = document.getElementById("typing-indicator");
+      if (el) el.remove();
+    }
+
+    function setLoading(state) {
+      isLoading = state;
+      sendBtn.disabled = state;
+      statusDot.className = state
+        ? "ml-auto w-2.5 h-2.5 rounded-full bg-yellow-500"
+        : "ml-auto w-2.5 h-2.5 rounded-full bg-green-500";
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text || isLoading) return;
+
+      addMessage(text, "user");
+      input.value = "";
+      setLoading(true);
+      showTyping();
+
+      document.getElementById("suggestions").classList.add("hidden");
+
+      try {
+        const API_BASE = window.location.origin;
+        const res = await fetch(API_BASE + "/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text, threadId }),
+        });
+
+        const data = await res.json();
+        removeTyping();
+
+        if (!res.ok) {
+          addMessage("Erro: " + (data.error || "Não foi possível conectar."), "assistant");
+        } else {
+          threadId = data.threadId;
+          addMessage(data.reply, "assistant");
+        }
+      } catch (err) {
+        removeTyping();
+        addMessage("Erro de conexão. Tente novamente.", "assistant");
+      } finally {
+        setLoading(false);
+        input.focus();
+      }
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        form.dispatchEvent(new Event("submit"));
+      }
+    });
+
+    function sendSuggestion(btn) {
+      if (isLoading) return;
+      input.value = btn.textContent.trim();
+      form.dispatchEvent(new Event("submit"));
+    }
+
+    // Envia mensagem de boas-vindas ao pai se estiver em iframe
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: "leobchat-ready" }, "*");
+    }
+  </script>
+</body>
+</html>
