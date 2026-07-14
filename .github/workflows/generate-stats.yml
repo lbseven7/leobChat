@@ -1,0 +1,51 @@
+name: Generate GitHub Stats
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # A cada 6 horas
+  workflow_dispatch:  # Permite rodar manualmente
+
+jobs:
+  generate-stats:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate Stats Images
+        uses: anuraghazra/github-readme-stats@master
+        with:
+          username: lbseven7
+          show_icons: true
+          theme: transparent
+          hide_border: true
+          bg_color: "0d1117"
+          title_color: "d88800"
+          icon_color: "d88800"
+          text_color: "c9d1d9"
+          include_all_commits: true
+          count_private: true
+
+      - name: Generate Top Languages
+        uses: anuraghazra/github-readme-stats@master
+        with:
+          username: lbseven7
+          show_icons: true
+          layout: compact
+          theme: transparent
+          hide_border: true
+          bg_color: "0d1117"
+          title_color: "d88800"
+          text_color: "c9d1d9"
+          langs_count: 8
+
+      - name: Commit stats
+        run: |
+          git config --local user.email "action@github.com"
+          git config --custom user.name "GitHub Action"
+          git add assets/
+          git diff --staged --quiet || git commit -m "Update stats images"
+          git push
