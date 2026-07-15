@@ -109,7 +109,9 @@ function logQuestion(message, reply, threadId) {
     source: "chat",
   };
 
-  sendToGoogleSheets(entry).catch(() => {});
+  sendToGoogleSheets(entry).catch((err) =>
+    console.error("FALHA_LOG:", err.message)
+  );
 }
 
 export default async function handler(req, res) {
