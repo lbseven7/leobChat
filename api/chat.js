@@ -8,6 +8,44 @@ function stripCitations(text) {
   return text.replace(/【[^】]*】/g, "").trim();
 }
 
+async function getGoogleAccessToken(serviceAccountEmail, privateKey) {
+  const now = Math.floor(Date.now() / 1000);
+  const expiry = now + 3600;
+
+  const header = { alg: "RS256", typ: "JWT" };
+  const payload = {
+    iss: serviceAccountEmail,
+    scope: "https://www.googleapis.com/auth/spreadsheets",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: expiry,
+  };
+
+  const base64url = (obj) =>
+    Buffer.from(JSON.stringify(obj)).toString("base64url");
+
+  const headerB64 = base64url(header);
+  const payloadB64 = base64url(payload);
+  const signingInput = `${headerB64}.${payloadB64}`;
+
+  const crypto = await import("crypto");
+  const sign = crypto.createSign("RSA-SHA256");
+  sign.update(signingInput);
+  sign.end();
+  const signature = sign.sign(privateKey, "base64url");
+
+  const jwt = `${signingInput}.${signature}`;
+
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+  });
+
+  const tokenData = await tokenRes.json();
+  return tokenData.access_token;
+}
+
 async function sendToGoogleSheets(entry) {
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
   const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
@@ -16,36 +54,33 @@ async function sendToGoogleSheets(entry) {
   if (!spreadsheetId || !serviceAccountEmail || !privateKey) return;
 
   try {
-    const { GoogleAuth } = await import("google-auth-library");
-    const { google } = await import("googleapis");
+    const accessToken = await getGoogleAccessToken(
+      serviceAccountEmail,
+      privateKey.replace(/\\n/g, "\n")
+    );
 
-    const auth = new GoogleAuth({
-      credentials: {
-        client_email: serviceAccountEmail,
-        private_key: privateKey.replace(/\\n/g, "\n"),
-      },
-      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
-    });
-
-    const sheets = google.sheets({ version: "v4", auth });
-
-    await sheets.spreadsheets.values.append({
-      spreadsheetId,
-      range: "Logs!A:F",
-      valueInputOption: "RAW",
-      requestBody: {
-        values: [
-          [
-            entry.timestamp,
-            entry.question,
-            entry.answer,
-            entry.unanswered ? "SIM" : "NAO",
-            entry.threadId || "",
-            entry.source || "chat",
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Logs!A:F:append?valueInputOption=RAW`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          values: [
+            [
+              entry.timestamp,
+              entry.question,
+              entry.answer,
+              entry.unanswered ? "SIM" : "NAO",
+              entry.threadId || "",
+              entry.source || "chat",
+            ],
           ],
-        ],
-      },
-    });
+        }),
+      }
+    );
   } catch (error) {
     console.error("Erro ao enviar para Google Sheets:", error.message);
   }
