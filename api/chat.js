@@ -8,9 +8,23 @@ function stripCitations(text) {
   return text.replace(/【[^】]*】/g, "").trim();
 }
 
+function normalizePrivateKey(key) {
+  let k = key.trim();
+  if (k.startsWith('"') && k.endsWith('"')) k = k.slice(1, -1);
+  k = k.replace(/\\n/g, "\n");
+  if (!k.includes("\n")) {
+    k = k
+      .replace(/-----BEGIN PRIVATE KEY-----/g, "-----BEGIN PRIVATE KEY-----\n")
+      .replace(/-----END PRIVATE KEY-----/g, "\n-----END PRIVATE KEY-----")
+      .replace(/(.{64})/g, "$1\n")
+      .replace(/\n\n/g, "\n");
+  }
+  return k;
+}
+
 async function getGoogleAccessToken(serviceAccountEmail, privateKey) {
+  const crypto = await import("crypto");
   const now = Math.floor(Date.now() / 1000);
-  const expiry = now + 3600;
 
   const header = { alg: "RS256", typ: "JWT" };
   const payload = {
@@ -18,32 +32,29 @@ async function getGoogleAccessToken(serviceAccountEmail, privateKey) {
     scope: "https://www.googleapis.com/auth/spreadsheets",
     aud: "https://oauth2.googleapis.com/token",
     iat: now,
-    exp: expiry,
+    exp: now + 3600,
   };
 
   const base64url = (obj) =>
     Buffer.from(JSON.stringify(obj)).toString("base64url");
 
-  const headerB64 = base64url(header);
-  const payloadB64 = base64url(payload);
-  const signingInput = `${headerB64}.${payloadB64}`;
-
-  const crypto = await import("crypto");
+  const signingInput = `${base64url(header)}.${base64url(payload)}`;
   const sign = crypto.createSign("RSA-SHA256");
   sign.update(signingInput);
   sign.end();
-  const signature = sign.sign(privateKey, "base64url");
-
-  const jwt = `${signingInput}.${signature}`;
+  const signature = sign.sign(normalizePrivateKey(privateKey), "base64url");
 
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${signingInput}.${signature}`,
   });
 
-  const tokenData = await tokenRes.json();
-  return tokenData.access_token;
+  const data = await tokenRes.json();
+  if (!data.access_token) {
+    throw new Error(`Token error: ${data.error || JSON.stringify(data)}`);
+  }
+  return data.access_token;
 }
 
 async function sendToGoogleSheets(entry) {
@@ -56,7 +67,7 @@ async function sendToGoogleSheets(entry) {
   try {
     const accessToken = await getGoogleAccessToken(
       serviceAccountEmail,
-      privateKey.replace(/\\n/g, "\n")
+      privateKey
     );
 
     await fetch(
