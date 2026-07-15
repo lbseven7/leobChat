@@ -3,13 +3,21 @@ export default async function handler(req, res) {
   const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const privateKey = process.env.GOOGLE_PRIVATE_KEY;
 
-  const missing = [];
-  if (!spreadsheetId) missing.push("GOOGLE_SHEET_ID");
-  if (!serviceAccountEmail) missing.push("GOOGLE_SERVICE_ACCOUNT_EMAIL");
-  if (!privateKey) missing.push("GOOGLE_PRIVATE_KEY");
+  const info = {
+    hasSheetId: !!spreadsheetId,
+    sheetIdLength: spreadsheetId ? spreadsheetId.length : 0,
+    hasEmail: !!serviceAccountEmail,
+    emailEnd: serviceAccountEmail ? serviceAccountEmail.slice(-10) : null,
+    hasPrivateKey: !!privateKey,
+    privateKeyLength: privateKey ? privateKey.length : 0,
+    privateKeyStarts: privateKey ? privateKey.slice(0, 30) : null,
+    privateKeyEnds: privateKey ? privateKey.slice(-20) : null,
+    hasNewlines: privateKey ? privateKey.includes("\n") : false,
+    hasLiteralBackslashN: privateKey ? privateKey.includes("\\n") : false,
+  };
 
-  if (missing.length > 0) {
-    return res.status(200).json({ ok: false, error: `Missing: ${missing.join(", ")}` });
+  if (!privateKey) {
+    return res.status(200).json({ ok: false, step: "env", info });
   }
 
   function normalizePrivateKey(key) {
@@ -18,6 +26,8 @@ export default async function handler(req, res) {
     k = k.replace(/\\n/g, "\n");
     return k;
   }
+
+  const normalized = normalizePrivateKey(privateKey);
 
   try {
     const crypto = await import("crypto");
@@ -39,7 +49,7 @@ export default async function handler(req, res) {
     const sign = crypto.createSign("RSA-SHA256");
     sign.update(signingInput);
     sign.end();
-    const signature = sign.sign(normalizePrivateKey(privateKey), "base64url");
+    const signature = sign.sign(normalized, "base64url");
 
     const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
@@ -55,6 +65,7 @@ export default async function handler(req, res) {
         step: "token",
         error: tokenData.error,
         details: tokenData.error_description,
+        info,
       });
     }
 
@@ -70,7 +81,7 @@ export default async function handler(req, res) {
           values: [
             [
               new Date().toISOString(),
-              "TESTE CONEXAO",
+              "TESTE DEBUG",
               "conexao ok",
               "NAO",
               "",
@@ -88,11 +99,12 @@ export default async function handler(req, res) {
         ok: false,
         step: "sheets",
         error: sheetsData.error.message,
+        info,
       });
     }
 
-    return res.status(200).json({ ok: true, result: sheetsData });
+    return res.status(200).json({ ok: true, info });
   } catch (error) {
-    return res.status(200).json({ ok: false, error: error.message });
+    return res.status(200).json({ ok: false, error: error.message, info });
   }
 }
