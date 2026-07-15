@@ -62,42 +62,47 @@ async function sendToGoogleSheets(entry) {
   const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const privateKey = process.env.GOOGLE_PRIVATE_KEY;
 
-  if (!spreadsheetId || !serviceAccountEmail || !privateKey) return;
-
-  try {
-    const accessToken = await getGoogleAccessToken(
-      serviceAccountEmail,
-      privateKey
-    );
-
-    await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Logs!A:F:append?valueInputOption=RAW`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          values: [
-            [
-              entry.timestamp,
-              entry.question,
-              entry.answer,
-              entry.unanswered ? "SIM" : "NAO",
-              entry.threadId || "",
-              entry.source || "chat",
-            ],
-          ],
-        }),
-      }
-    );
-  } catch (error) {
-    console.error("Erro ao enviar para Google Sheets:", error.message);
+  if (!spreadsheetId || !serviceAccountEmail || !privateKey) {
+    throw new Error("Missing Google env vars");
   }
+
+  const accessToken = await getGoogleAccessToken(
+    serviceAccountEmail,
+    privateKey
+  );
+
+  const res = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Logs!A:F:append?valueInputOption=RAW`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        values: [
+          [
+            entry.timestamp,
+            entry.question,
+            entry.answer,
+            entry.unanswered ? "SIM" : "NAO",
+            entry.threadId || "",
+            entry.source || "chat",
+          ],
+        ],
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Sheets API error ${res.status}: ${errText}`);
+  }
+
+  return { ok: true };
 }
 
-function logQuestion(message, reply, threadId) {
+async function logQuestion(message, reply, threadId) {
   const unanswered = reply.includes("não está nos meus materiais");
 
   const entry = {
@@ -109,9 +114,13 @@ function logQuestion(message, reply, threadId) {
     source: "chat",
   };
 
-  sendToGoogleSheets(entry).catch((err) =>
-    console.error("FALHA_LOG:", err.message)
-  );
+  try {
+    await sendToGoogleSheets(entry);
+    return { ok: true };
+  } catch (err) {
+    console.error("FALHA_LOG:", err.message);
+    return { ok: false, error: err.message };
+  }
 }
 
 export default async function handler(req, res) {
@@ -172,11 +181,12 @@ Regras importantes:
 
     reply = stripCitations(reply || "Desculpe, não consegui gerar uma resposta.");
 
-    logQuestion(message, reply, response.conversation || threadId);
+    const logStatus = await logQuestion(message, reply, response.conversation || threadId);
 
     return res.status(200).json({
       reply,
       threadId: response.conversation || threadId,
+      logStatus,
     });
   } catch (error) {
     console.error("Erro na API:", error);
