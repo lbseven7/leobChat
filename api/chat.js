@@ -1,6 +1,4 @@
 import OpenAI from "openai";
-import fs from "fs";
-import path from "path";
 
 function getOpenAI() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -10,58 +8,12 @@ function stripCitations(text) {
   return text.replace(/【[^】]*】/g, "").trim();
 }
 
-const LOG_DIR = path.join(process.cwd(), "logs");
-const LOG_FILE = path.join(LOG_DIR, "questions.json");
-
-function ensureLogDir() {
-  if (!fs.existsSync(LOG_DIR)) {
-    fs.mkdirSync(LOG_DIR, { recursive: true });
-  }
-}
-
-function readLogs() {
-  ensureLogDir();
-  if (!fs.existsSync(LOG_FILE)) return [];
-  try {
-    return JSON.parse(fs.readFileSync(LOG_FILE, "utf8"));
-  } catch {
-    return [];
-  }
-}
-
-function writeLogs(logs) {
-  ensureLogDir();
-  fs.writeFileSync(LOG_FILE, JSON.stringify(logs, null, 2));
-}
-
-async function logQuestion(question, answer, threadId) {
-  const unanswered = answer.includes("não está nos meus materiais");
-
-  const entry = {
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    timestamp: new Date().toISOString(),
-    question,
-    answer,
-    unanswered,
-    threadId: threadId || null,
-    source: "chat",
-  };
-
-  const logs = readLogs();
-  logs.push(entry);
-  writeLogs(logs);
-
-  await sendToGoogleSheets(entry);
-
-  return entry;
-}
-
 async function sendToGoogleSheets(entry) {
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
   const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const privateKey = process.env.GOOGLE_PRIVATE_KEY;
 
-  if (!spreadsheetId || !serviceAccountEmail || !privateKey) return false;
+  if (!spreadsheetId || !serviceAccountEmail || !privateKey) return;
 
   try {
     const { GoogleAuth } = await import("google-auth-library");
@@ -94,12 +46,24 @@ async function sendToGoogleSheets(entry) {
         ],
       },
     });
-
-    return true;
   } catch (error) {
     console.error("Erro ao enviar para Google Sheets:", error.message);
-    return false;
   }
+}
+
+function logQuestion(message, reply, threadId) {
+  const unanswered = reply.includes("não está nos meus materiais");
+
+  const entry = {
+    timestamp: new Date().toISOString(),
+    question: message,
+    answer: reply,
+    unanswered,
+    threadId: threadId || "",
+    source: "chat",
+  };
+
+  sendToGoogleSheets(entry).catch(() => {});
 }
 
 export default async function handler(req, res) {
@@ -160,9 +124,7 @@ Regras importantes:
 
     reply = stripCitations(reply || "Desculpe, não consegui gerar uma resposta.");
 
-    logQuestion(message, reply, response.conversation || threadId).catch((err) =>
-      console.error("Erro ao registrar pergunta:", err.message)
-    );
+    logQuestion(message, reply, response.conversation || threadId);
 
     return res.status(200).json({
       reply,
