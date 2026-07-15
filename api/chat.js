@@ -72,7 +72,7 @@ async function sendToGoogleSheets(entry) {
   );
 
   const res = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Logs!A:F:append?valueInputOption=RAW`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Logs!A1:F:append?valueInputOption=USER_ENTERED`,
     {
       method: "POST",
       headers: {
