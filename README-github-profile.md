@@ -51,6 +51,10 @@ Além do código, sou **artista pintor hiper-realista** com mais de 20 anos de e
 ![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white)
 ![ChatGPT](https://img.shields.io/badge/ChatGPT-74aa9c?style=for-the-badge&logo=openai&logoColor=white)
 
+## 📊 GitHub Stats
+
+![Stats](./assets/stats.svg)
+
 </div>
 
 ---
