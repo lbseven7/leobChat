@@ -54,6 +54,7 @@ Além do código, sou **artista pintor hiper-realista** com mais de 20 anos de e
 ## 📊 GitHub Stats
 
 ![Stats](./assets/stats.svg)
+![Top Languages](./assets/languages.svg)
 
 </div>
 
