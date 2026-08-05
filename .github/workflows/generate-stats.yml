@@ -21,7 +21,6 @@ jobs:
           filename: assets/stats.svg
           committer_message: "Update stats images"
 
-          config_theme: dark
           config_timezone: America/Bahia
 
           base: header, activity, community, repositories, metadata
@@ -45,7 +44,6 @@ jobs:
           filename: assets/languages.svg
           committer_message: "Update languages image"
 
-          config_theme: dark
           config_timezone: America/Bahia
 
           base: ""
