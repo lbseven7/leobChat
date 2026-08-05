@@ -14,18 +14,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Generate GitHub Stats Images
-        uses: jstrieb/github-stats@master
+      - name: Generate metrics
+        uses: lowlighter/metrics@latest
         with:
-          username: lbseven7
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          include_all_commits: true
-          count_private: true
-
-      - name: Commit stats
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add generated/
-          git diff --staged --quiet || git commit -m "Update stats images"
-          git push
+          token: ${{ secrets.METRICS_TOKEN }}
+          filename: assets/stats.svg
+          committer_message: "Update stats images"
+          base: header, activity, community, repositories, metadata
+          plugin_languages: yes
+          plugin_languages_analysis_timeout: 15
+          plugin_languages_categories: markup, programming
+          plugin_languages_limit: 8
+          config_timezone: America/Bahia
